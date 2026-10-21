@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل امن مدیریت سودران | ورود با توکن اختصاصی</title>
+    <style>
+        * { box-sizing: border-box; font-family: Tahoma, system-ui, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; margin: 0; padding: 12px; line-height: 1.6; }
+        .container { max-width: 920px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1b833e, #0f5132); padding: 18px; border-radius: 18px; margin-bottom: 16px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .header h1 { margin: 0; font-size: 18px; }
+        .header p { margin: 6px 0 0; font-size: 12px; color: #bbf7d0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 12px 6px; text-align: center; }
+        .stat-num { font-size: 22px; font-weight: bold; display: block; }
+        .stat-label { font-size: 11px; color: #94a3b8; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .card h2 { margin-top: 0; font-size: 15px; color: #4ade80; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        label { display: block; font-size: 12.5px; color: #cbd5e1; margin: 10px 0 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 13.5px; }
+        input.ltr, textarea.ltr { direction: ltr; text-align: left; font-family: monospace; }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 150px; }
+        button { background: #1b833e; color: #fff; border: none; padding: 11px 14px; border-radius: 10px; font-size: 13.5px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
+        button:hover { opacity: 0.92; }
+        button.secondary { background: #2563eb; }
+        button.danger { background: #dc2626; }
+        button.warn { background: #d97706; }
+        button.purple { background: #7c3aed; }
+        button.sm { width: auto; padding: 6px 10px; font-size: 11.5px; margin: 2px; border-radius: 8px; }
+        .status-bar { padding: 12px; border-radius: 10px; margin-bottom: 14px; text-align: center; font-size: 13px; font-weight: bold; display: none; }
+        .lic-item { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .lic-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .lic-key { font-family: monospace; font-size: 15px; font-weight: bold; color: #38bdf8; direction: ltr; }
+        .badge-active { background: #065f46; color: #6ee7b7; padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: bold; }
+        .badge-inactive { background: #7f1d1d; color: #fca5a5; padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: bold; }
+        .badge-waiting { background: #78350f; color: #fde68a; padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: bold; }
+        .lic-meta { font-size: 12.5px; color: #cbd5e1; display: flex; flex-wrap: wrap; gap: 12px; }
+        .lic-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .plan-box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-top: 10px; }
+        .plan-box h3 { margin: 0 0 8px 0; font-size: 14px; color: #fde047; }
+        .scrollable-box {
+            max-height: 330px;
+            overflow-y: auto;
+            padding: 8px;
+            border: 1px solid #4c1d95;
+            border-radius: 12px;
+            background: #090d16;
+            margin-top: 12px;
+        }
+        .scrollable-box::-webkit-scrollbar { width: 7px; }
+        .scrollable-box::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
+        .scrollable-box::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 8px; }
+        #protectedPanel { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👑 پنل امن مدیریت سودران</h1>
+        <p>دسترسی به اطلاعات این پنل صرفاً با کلید (توکن) مدیریت امکان‌پذیر است</p>
+    </div>
+
+    <div id="globalStatus" class="status-bar"></div>
+
+    <!-- کارت احراز هویت (تنها بخش قابل مشاهده قبل از وارد کردن توکن) -->
+    <div class="card" style="border-color:#3b82f6;">
+        <h2>🔐 احراز هویت و ورود به پنل مدیریت</h2>
+        <div class="row">
+            <div class="col">
+                <label>نام مخزن گیت‌هاب (user/repo):</label>
+                <input type="text" id="ghRepo" class="ltr" value="alirezabigdelu/driver-assistant">
+            </div>
+            <div class="col">
+                <label>کلید / توکن امنیتی گیت‌هاب (ghp_...):</label>
+                <input type="password" id="ghToken" class="ltr" placeholder="بدون وارد کردن توکن هیچ اطلاعاتی نمایش داده نمی‌شود">
+            </div>
+        </div>
+        <div class="row" style="margin-top:6px;">
+            <div class="col">
+                <button class="secondary" onclick="connectAndLoad()">🔓 بررسی توکن و نمایش اطلاعات پنل</button>
+            </div>
+            <div class="col" id="logoutCol" style="display:none; flex:0.4;">
+                <button class="danger" onclick="lockPanel()">🔒 قفل کردن و خروج</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تمام محتویات پنل تا زمان تایید توکن مدیریت کاملاً مخفی هستند -->
+    <div id="protectedPanel">
+
+        <!-- آمار زنده -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span id="statTotal" class="stat-num" style="color:#38bdf8;">0</span>
+                <span class="stat-label">کل لایسنس‌ها</span>
+            </div>
+            <div class="stat-card">
+                <span id="statActive" class="stat-num" style="color:#4ade80;">0</span>
+                <span class="stat-label">🟢 لایسنس فعال</span>
+            </div>
+            <div class="stat-card">
+                <span id="statTrialsActive" class="stat-num" style="color:#c084fc;">0</span>
+                <span class="stat-label">🎁 هدیه ۷ روزه فعال</span>
+            </div>
+            <div class="stat-card">
+                <span id="statTrialsTotal" class="stat-num" style="color:#fbbf24;">0</span>
+                <span class="stat-label">📱 کل گوشی‌های هدیه‌گیرنده</span>
+            </div>
+        </div>
+
+        <!-- مدیریت و آپلود ویدیوهای آموزشی -->
+        <div class="card" style="border-color:#3b82f6;">
+            <h2 style="color:#60a5fa;">🎬 مدیریت و آپلود ویدیوهای آموزشی (دکمه آموزش در برنامه)</h2>
+            <p style="font-size:12px; color:#94a3b8; margin-top:0;">
+                در برنامه ابتدا <b>عنوان</b>، زیر آن <b>توضیح</b> و در پایین آن <b>ویدیو</b> نمایش داده می‌شود.
+            </p>
+            <div class="row">
+                <div class="col">
+                    <label>۱. عنوان بالای ویدیو:</label>
+                    <input type="text" id="tutTitle" placeholder="مثلاً: آموزش فعال‌سازی سرویس دسترس‌پذیری">
+                </div>
+                <div class="col">
+                    <label>۲. توضیح زیر عنوان:</label>
+                    <input type="text" id="tutDesc" placeholder="مثلاً: در این ویدیو نحوه باز کردن قفل سه‌نقطه را می‌بینید">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label>۳. انتخاب فایل ویدیو از گوشی/سیستم (MP4):</label>
+                    <input type="file" id="tutFile" accept="video/*">
+                </div>
+                <div class="col">
+                    <label>یا لینک مستقیم ویدیو (اختیاری - در صورت عدم انتخاب فایل):</label>
+                    <input type="text" id="tutUrl" class="ltr" placeholder="https://example.com/video.mp4">
+                </div>
+            </div>
+            <button id="uploadTutBtn" class="secondary" onclick="uploadAndAddTutorial()">⬆️ آپلود ویدیو و افزودن به بخش آموزش برنامه</button>
+
+            <label style="margin-top:14px;">لیست ویدیوهای آموزشی فعلی در برنامه:</label>
+            <div id="tutorialsList" class="scrollable-box" style="border-color:#1d4ed8;">در حال بارگذاری...</div>
+        </div>
+
+        <!-- بخش ۱: مدیریت اشتراک‌های رایگان ۷ روزه -->
+        <div class="card" style="border-color:#7c3aed;">
+            <h2 style="color:#c084fc;">🎁 مدیریت آنلاین اشتراک ۷ روزه رایگان (مخصوص هر گوشی یک بار)</h2>
+            <label>وضعیت اشتراک ۷ روزه رایگان برای کاربران جدید در برنامه:</label>
+            <select id="trialEnabled" onchange="saveGeneralSettings()">
+                <option value="true">🟢 فعال (کاربران جدید می‌توانند یک بار ۷ روز هدیه بگیرند)</option>
+                <option value="false">🔴 غیرفعال (بسته شدن دریافت اشتراک رایگان در برنامه)</option>
+            </select>
+
+            <label style="margin-top:14px;">لیست گوشی‌های دریافت‌کننده هدیه:</label>
+            <div id="trialsList" class="scrollable-box">در حال بارگذاری...</div>
+        </div>
+
+        <!-- بخش ۲: ساخت لایسنس پولی جدید با قفل خودکار روی اولین دستگاه -->
+        <div class="card">
+            <h2>➕ ساخت لایسنس جدید (قفل خودکار روی اولین دستگاه)</h2>
+            <p style="font-size:12px; color:#94a3b8; margin-top:0;">
+                🔒 <b>تضمین تک‌دستگاهی:</b> اگر کادر «کد گوشی» را خالی بگذارید، لایسنس به محض اولین ورود راننده، به صورت خودکار روی همان گوشی قفل می‌شود و روی هیچ گوشی دیگری کار نخواهد کرد (مگر اینکه از همین پنل کد گوشی را تغییر دهید).
+            </p>
+            <div class="row">
+                <div class="col">
+                    <label>مدت اشتراک:</label>
+                    <select id="newPlan">
+                        <option value="30|1M|یک ماهه" selected>۱ ماهه (۳۰ روز)</option>
+                        <option value="90|3M|سه ماهه">۳ ماهه (۹۰ روز)</option>
+                        <option value="365|1Y|یک ساله">۱ ساله (۳۶۵ روز)</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label>کد گوشی راننده (Device ID):</label>
+                    <input type="text" id="newDeviceId" class="ltr" placeholder="خالی = قفل خودکار روی اولین گوشی متصل‌شونده">
+                </div>
+                <div class="col">
+                    <label>نام یا توضیح راننده:</label>
+                    <input type="text" id="newNote" placeholder="مثلاً آقای رضایی">
+                </div>
+            </div>
+            <button onclick="createNewOnlineLicense()">⚡ ساخت لایسنس تک‌دستگاهی و ثبت در سرور</button>
+        </div>
+
+        <!-- بخش ۳: لیست لایسنس‌های پولی -->
+        <div class="card">
+            <h2>📋 لیست آنلاین لایسنس‌های اشتراک</h2>
+            <div id="licensesList">در حال بارگذاری...</div>
+        </div>
+
+        <!-- بخش ۴: تنظیمات کارت‌های گرافیکی، تخفیف‌ها و لینک مقصد -->
+        <div class="card">
+            <h2>🎨 مدیریت کارت‌های گرافیکی اشتراک، تخفیف‌ها و لینک خرید</h2>
+
+            <div class="plan-box">
+                <h3>۱. کارت گرافیکی اشتراک یک ماهه (۳۰ روز)</h3>
+                <div class="row">
+                    <div class="col">
+                        <label>قیمت اصلی:</label>
+                        <input type="text" id="price1m" value="۱۵۰,۰۰۰ تومان" oninput="autoCalcPercent('1m')">
+                    </div>
+                    <div class="col">
+                        <label>قیمت با تخفیف (خالی = بدون تخفیف):</label>
+                        <input type="text" id="offPrice1m" placeholder="مثلاً ۱۲۰,۰۰۰ تومان" oninput="autoCalcPercent('1m')">
+                    </div>
+                    <div class="col">
+                        <label>درصد تخفیف:</label>
+                        <input type="text" id="offPercent1m" placeholder="مثلاً ۲۰">
+                    </div>
+                </div>
+                <label>لینک مقصد هنگام کلیک روی کارت ۱ ماهه:</label>
+                <input type="text" id="link1m" class="ltr" placeholder="https://t.me/YourSupportID">
+            </div>
+
+            <div class="plan-box">
+                <h3>۲. کارت گرافیکی اشتراک سه ماهه (۹۰ روز)</h3>
+                <div class="row">
+                    <div class="col">
+                        <label>قیمت اصلی:</label>
+                        <input type="text" id="price3m" value="۳۸۰,۰۰۰ تومان" oninput="autoCalcPercent('3m')">
+                    </div>
+                    <div class="col">
+                        <label>قیمت با تخفیف (خالی = بدون تخفیف):</label>
+                        <input type="text" id="offPrice3m" placeholder="مثلاً ۳۰۰,۰۰۰ تومان" oninput="autoCalcPercent('3m')">
+                    </div>
+                    <div class="col">
+                        <label>درصد تخفیف:</label>
+                        <input type="text" id="offPercent3m" placeholder="مثلاً ۲۱">
+                    </div>
+                </div>
+                <label>لینک مقصد هنگام کلیک روی کارت ۳ ماهه:</label>
+                <input type="text" id="link3m" class="ltr" placeholder="https://t.me/YourSupportID">
+            </div>
+
+            <div class="plan-box">
+                <h3>۳. کارت گرافیکی اشتراک یک ساله (۳۶۵ روز - VIP)</h3>
+                <div class="row">
+                    <div class="col">
+                        <label>قیمت اصلی:</label>
+                        <input type="text" id="price1y" value="۱,۲۰۰,۰۰۰ تومان" oninput="autoCalcPercent('1y')">
+                    </div>
+                    <div class="col">
+                        <label>قیمت با تخفیف (خالی = بدون تخفیف):</label>
+                        <input type="text" id="offPrice1y" placeholder="مثلاً ۹۰۰,۰۰۰ تومان" oninput="autoCalcPercent('1y')">
+                    </div>
+                    <div class="col">
+                        <label>درصد تخفیف:</label>
+                        <input type="text" id="offPercent1y" placeholder="مثلاً ۲۵">
+                    </div>
+                </div>
+                <label>لینک مقصد هنگام کلیک روی کارت ۱ ساله:</label>
+                <input type="text" id="link1y" class="ltr" placeholder="https://t.me/YourSupportID">
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+                <div class="col">
+                    <label>وضعیت کل برنامه برای تمام رانندگان:</label>
+                    <select id="appEnabled">
+                        <option value="true">🟢 برنامه فعال است</option>
+                        <option value="false">🔴 قفل کامل برنامه برای همه</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label>متن راهنمای پایین کارت‌ها:</label>
+                    <input type="text" id="contactInfo" value="جهت تهیه اشتراک روی یکی از طرح‌های بالا ضربه بزنید">
+                </div>
+            </div>
+
+            <label>📜 متن پنجره قوانین اجباری (هنگام اولین ورود به برنامه نمایش داده می‌شود):</label>
+            <textarea id="rulesText" rows="4"></textarea>
+
+            <button onclick="saveGeneralSettings()">💾 ذخیره تمام قیمت‌ها، تخفیف‌ها، لینک‌ها و قوانین در سرور</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let serverData = {
+    app_enabled: true,
+    trial_enabled: true,
+    bridge_key: "",
+    price_1m: "۱۵۰,۰۰۰ تومان",
+    price_3m: "۳۸۰,۰۰۰ تومان",
+    price_1y: "۱,۲۰۰,۰۰۰ تومان",
+    off_price_1m: "",
+    off_percent_1m: "",
+    off_price_3m: "",
+    off_percent_3m: "",
+    off_price_1y: "",
+    off_percent_1y: "",
+    link_1m: "",
+    link_3m: "",
+    link_1y: "",
+    contact_info: "جهت تهیه اشتراک روی یکی از طرح‌های بالا ضربه بزنید",
+    rules_text: "",
+    licenses: [],
+    trials: [],
+    tutorials: []
+};
+
+function extractNumber(str) {
+    if (!str) return 0;
+    const persian = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    const arabic  = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+    let out = "";
+    for (let ch of str) {
+        let idxP = persian.indexOf(ch);
+        let idxA = arabic.indexOf(ch);
+        if (idxP !== -1) out += idxP;
+        else if (idxA !== -1) out += idxA;
+        else if (ch >= '0' && ch <= '9') out += ch;
+    }
+    return parseInt(out, 10) || 0;
+}
+
+function autoCalcPercent(tier) {
+    const orig = extractNumber(document.getElementById('price' + tier).value);
+    const disc = extractNumber(document.getElementById('offPrice' + tier).value);
+    const pctInput = document.getElementById('offPercent' + tier);
+    if (orig > 0 && disc > 0 && disc < orig) {
+        const pct = Math.round(((orig - disc) / orig) * 100);
+        pctInput.value = pct.toString();
+    } else if (disc === 0) {
+        pctInput.value = "";
+    }
+}
+
+function encodeBridge(token) {
+    if (!token) return "";
+    const key = "DA2026KEY";
+    let hex = "";
+    for (let i = 0; i < token.length; i++) {
+        const c = token.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+        hex += c.toString(16).padStart(2, '0').toUpperCase();
+    }
+    return hex;
+}
+
+function showBanner(msg, color) {
+    const el = document.getElementById('globalStatus');
+    el.style.display = 'block';
+    el.style.background = color === 'green' ? '#064e3b' : (color === 'red' ? '#7f1d1d' : '#78350f');
+    el.style.color = '#fff';
+    el.innerHTML = msg;
+}
+
+function lockPanel() {
+    localStorage.removeItem('da_gh_token');
+    document.getElementById('ghToken').value = "";
+    document.getElementById('protectedPanel').style.display = 'none';
+    document.getElementById('logoutCol').style.display = 'none';
+    showBanner("🔒 پنل قفل شد. برای مشاهده اطلاعات، توکن مدیریت را وارد کنید.", "orange");
+}
+
+function renderUI() {
+    const licenses = serverData.licenses || [];
+    const trials = serverData.trials || [];
+    const tutorials = serverData.tutorials || [];
+    const nowDays = Math.floor(Date.now() / 86400000);
+
+    let activeLicCount = 0;
+    licenses.forEach(lic => {
+        if (lic.active && (lic.exp_days > nowDays)) activeLicCount++;
+    });
+
+    let activeTrialCount = 0;
+    trials.forEach(tr => {
+        if (tr.active && (tr.exp_days > nowDays)) activeTrialCount++;
+    });
+
+    document.getElementById('statTotal').innerText = licenses.length;
+    document.getElementById('statActive').innerText = activeLicCount;
+    document.getElementById('statTrialsActive').innerText = activeTrialCount;
+    document.getElementById('statTrialsTotal').innerText = trials.length;
+
+    document.getElementById('appEnabled').value = serverData.app_enabled === false ? "false" : "true";
+    document.getElementById('trialEnabled').value = serverData.trial_enabled === false ? "false" : "true";
+    document.getElementById('price1m').value = serverData.price_1m || "۱۵۰,۰۰۰ تومان";
+    document.getElementById('price3m').value = serverData.price_3m || "۳۸۰,۰۰۰ تومان";
+    document.getElementById('price1y').value = serverData.price_1y || "۱,۲۰۰,۰۰۰ تومان";
+    document.getElementById('offPrice1m').value = serverData.off_price_1m || "";
+    document.getElementById('offPercent1m').value = serverData.off_percent_1m || "";
+    document.getElementById('offPrice3m').value = serverData.off_price_3m || "";
+    document.getElementById('offPercent3m').value = serverData.off_percent_3m || "";
+    document.getElementById('offPrice1y').value = serverData.off_price_1y || "";
+    document.getElementById('offPercent1y').value = serverData.off_percent_1y || "";
+    document.getElementById('link1m').value = serverData.link_1m || "";
+    document.getElementById('link3m').value = serverData.link_3m || "";
+    document.getElementById('link1y').value = serverData.link_1y || "";
+    document.getElementById('contactInfo').value = serverData.contact_info || "";
+    document.getElementById('rulesText').value = serverData.rules_text || "";
+
+    const tutContainer = document.getElementById('tutorialsList');
+    if (tutorials.length === 0) {
+        tutContainer.innerHTML = "<p style='color:#94a3b8;text-align:center;font-size:12.5px;margin:8px 0;'>هنوز هیچ ویدیوی آموزشی ثبت نشده است.</p>";
+    } else {
+        let vhtml = "";
+        tutorials.forEach((tut, idx) => {
+            vhtml += `
+            <div class="lic-item" style="border-color:#1e40af; margin-bottom:8px;">
+                <div class="lic-top">
+                    <span style="font-weight:bold; color:#60a5fa; font-size:14px;">📌 ${idx + 1}. ${tut.title || 'بدون عنوان'}</span>
+                    <button class="sm danger" onclick="deleteTutorial(${idx})">🗑️ حذف ویدیو</button>
+                </div>
+                <div style="font-size:12.5px; color:#cbd5e1;">${tut.desc || ''}</div>
+                <div style="font-size:11px; color:#94a3b8; direction:ltr; text-align:left; word-break:break-all;">
+                    <a href="${tut.url}" target="_blank" style="color:#38bdf8;">🔗 مشاهده فایل ویدیو</a>
+                </div>
+            </div>`;
+        });
+        tutContainer.innerHTML = vhtml;
+    }
+
+    const trialsContainer = document.getElementById('trialsList');
+    if (trials.length === 0) {
+        trialsContainer.innerHTML = "<p style='color:#94a3b8;text-align:center;font-size:12.5px;margin:8px 0;'>هنوز هیچ گوشی‌ای از اشتراک ۷ روزه رایگان استفاده نکرده است.</p>";
+    } else {
+        let thtml = "";
+        trials.forEach((tr, idx) => {
+            const remDays = Math.max(0, (tr.exp_days || 0) - nowDays);
+            const isAlive = tr.active && remDays > 0;
+            const badge = isAlive
+                ? `<span class="badge-active">🟢 هدیه فعال (${remDays} روز مانده)</span>`
+                : `<span class="badge-inactive">🔴 ${!tr.active ? 'مسدودشده توسط مدیر' : 'پایان مهلت ۷ روزه'}</span>`;
+
+            const toggleBtn = tr.active
+                ? `<button class="sm danger" onclick="toggleTrial(${idx}, false)">🚫 غیرفعال کردن این گوشی</button>`
+                : `<button class="sm" onclick="toggleTrial(${idx}, true)">✅ فعال کردن مجدد</button>`;
+
+            thtml += `
+            <div class="lic-item" style="border-color:#581c87; margin-bottom:8px;">
+                <div class="lic-top">
+                    <span class="lic-key" style="color:#e879f9;">📱 کد گوشی: ${tr.device_id}</span>
+                    ${badge}
+                </div>
+                <div class="lic-meta">
+                    <span>مدل گوشی: <b>${tr.model || 'نامشخص'}</b></span>
+                </div>
+                <div class="lic-actions">
+                    ${toggleBtn}
+                    <button class="sm danger" style="background:#475569;" onclick="deleteTrial(${idx})">🗑️ حذف از لیست</button>
+                </div>
+            </div>`;
+        });
+        trialsContainer.innerHTML = thtml;
+    }
+
+    const container = document.getElementById('licensesList');
+    if (licenses.length === 0) {
+        container.innerHTML = "<p style='color:#94a3b8;text-align:center;'>هیچ لایسنسی ثبت نشده است.</p>";
+        return;
+    }
+
+    let html = "";
+    licenses.forEach((lic, idx) => {
+        const remDays = Math.max(0, (lic.exp_days || 0) - nowDays);
+        const isAlive = lic.active && remDays > 0;
+        const statusBadge = isAlive
+            ? `<span class="badge-active">🟢 فعال (${remDays} روز مانده)</span>`
+            : `<span class="badge-inactive">🔴 ${!lic.active ? 'غیرفعال‌شده توسط مدیر' : 'منقضی‌شده'}</span>`;
+
+        const isUnbound = (!lic.device_id || lic.device_id === "UNBOUND" || lic.device_id === "ANY");
+        const modelInfo = lic.bound_model ? ` (${lic.bound_model})` : "";
+        const devLabel = isUnbound
+            ? `<span class="badge-waiting">⏳ در انتظار اتصال اولین گوشی (قفل خودکار)</span>`
+            : `🔒 قفل‌شده روی گوشی: <b style="color:#fde047;font-family:monospace;">${lic.device_id}</b>${modelInfo}`;
+
+        const toggleBtn = lic.active
+            ? `<button class="sm danger" onclick="toggleLicense(${idx}, false)">🚫 غیرفعال کردن</button>`
+            : `<button class="sm" onclick="toggleLicense(${idx}, true)">✅ فعال کردن مجدد</button>`;
+
+        html += `
+        <div class="lic-item">
+            <div class="lic-top">
+                <span class="lic-key">${lic.key}</span>
+                ${statusBadge}
+            </div>
+            <div class="lic-meta">
+                <span>📅 طرح: <b>${lic.plan || '-'}</b></span>
+                <span>${devLabel}</span>
+                <span>👤 توضیح: ${lic.note || '-'}</span>
+            </div>
+            <div class="lic-actions">
+                <button class="sm secondary" onclick="copyText('${lic.key}')">📋 کپی کد</button>
+                <button class="sm warn" onclick="editDeviceId(${idx})">✏️ تغییر / بازنشانی قفل گوشی</button>
+                ${toggleBtn}
+                <button class="sm danger" style="background:#475569;" onclick="deleteLicense(${idx})">🗑️ حذف</button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function copyText(txt) {
+    navigator.clipboard.writeText(txt);
+    alert("کد لایسنس کپی شد:\n" + txt);
+}
+
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result || "";
+            const base64 = result.includes(",") ? result.split(",")[1] : result;
+            resolve(base64);
+        };
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
+    });
+}
+
+async function uploadAndAddTutorial() {
+    const title = document.getElementById('tutTitle').value.trim();
+    const desc = document.getElementById('tutDesc').value.trim();
+    const fileInput = document.getElementById('tutFile');
+    const manualUrl = document.getElementById('tutUrl').value.trim();
+    const repo = document.getElementById('ghRepo').value.trim();
+    const token = document.getElementById('ghToken').value.trim();
+
+    if (!title) {
+        alert("لطفاً عنوان بالای ویدیو را وارد کنید.");
+        return;
+    }
+    if (!token || !repo) {
+        alert("لطفاً ابتدا توکن گیت‌هاب را وارد کنید.");
+        return;
+    }
+
+    let finalVideoUrl = manualUrl;
+    const btn = document.getElementById('uploadTutBtn');
+
+    if (fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if (file.size > 45 * 1024 * 1024) {
+            alert("حجم فایل ویدیو برای آپلود مستقیم باید کمتر از ۴۵ مگابایت باشد.");
+            return;
+        }
+        btn.disabled = true;
+        btn.innerText = "⏳ در حال آپلود فایل ویدیو به سرور گیت‌هاب...";
+        showBanner("⏳ در حال آپلود فایل ویدیو... لطفاً چند لحظه صبر کنید.", "orange");
+
+        try {
+            const b64Video = await readFileAsBase64(file);
+            const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fileName = `vid_${Date.now()}.${ext || 'mp4'}`;
+            const filePath = `videos/${fileName}`;
+
+            const uploadRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `token ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: `Upload tutorial video ${fileName} [skip ci]`,
+                    content: b64Video
+                })
+            });
+
+            if (!uploadRes.ok) {
+                btn.disabled = false;
+                btn.innerText = "⬆️ آپلود ویدیو و افزودن به بخش آموزش برنامه";
+                showBanner("❌ خطا در آپلود فایل ویدیو به گیت‌هاب.", "red");
+                return;
+            }
+
+            finalVideoUrl = `https://raw.githubusercontent.com/${repo}/main/${filePath}`;
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerText = "⬆️ آپلود ویدیو و افزودن به بخش آموزش برنامه";
+            showBanner("❌ خطا در خواندن یا ارسال فایل ویدیو.", "red");
+            return;
+        }
+    }
+
+    if (!finalVideoUrl) {
+        alert("لطفاً یک فایل ویدیو انتخاب کنید یا لینک مستقیم ویدیو را وارد نمایید.");
+        btn.disabled = false;
+        btn.innerText = "⬆️ آپلود ویدیو و افزودن به بخش آموزش برنامه";
+        return;
+    }
+
+    if (!Array.isArray(serverData.tutorials)) serverData.tutorials = [];
+    serverData.tutorials.push({
+        title: title,
+        desc: desc,
+        url: finalVideoUrl
+    });
+
+    document.getElementById('tutTitle').value = "";
+    document.getElementById('tutDesc').value = "";
+    document.getElementById('tutUrl').value = "";
+    fileInput.value = "";
+    btn.disabled = false;
+    btn.innerText = "⬆️ آپلود ویدیو و افزودن به بخش آموزش برنامه";
+
+    await pushToServer("✅ ویدیوی آموزشی با موفقیت آپلود و در برنامه ثبت شد!");
+}
+
+async function deleteTutorial(index) {
+    if (!serverData.tutorials || !serverData.tutorials[index]) return;
+    if (!confirm("آیا از حذف این ویدیوی آموزشی مطمئن هستید؟")) return;
+    serverData.tutorials.splice(index, 1);
+    await pushToServer("🗑️ ویدیوی آموزشی حذف شد.");
+}
+
+async function connectAndLoad() {
+    const repo = document.getElementById('ghRepo').value.trim();
+    const token = document.getElementById('ghToken').value.trim();
+
+    if (!token) {
+        document.getElementById('protectedPanel').style.display = 'none';
+        document.getElementById('logoutCol').style.display = 'none';
+        showBanner("🔒 پنل قفل است. جهت مشاهده و ویرایش اطلاعات، لطفاً توکن مدیریت (ghp_...) را وارد کنید.", "orange");
+        return;
+    }
+
+    showBanner("⏳ در حال بررسی اعتبار توکن مدیریت...", "orange");
+
+    try {
+        const authHeaders = {
+            "Authorization": `token ${token}`,
+            "Accept": "application/vnd.github.v3+json"
+        };
+
+        // ۱. بررسی اینکه توکن معتبر است و واقعاً دسترسی مدیریت (Push/Write) روی این مخزن دارد
+        const repoCheck = await fetch(`https://api.github.com/repos/${repo}`, {
+            headers: authHeaders,
+            cache: "no-store"
+        });
+
+        if (!repoCheck.ok) {
+            document.getElementById('protectedPanel').style.display = 'none';
+            showBanner("❌ توکن واردشده نامعتبر است یا مخزن یافت نشد.", "red");
+            return;
+        }
+
+        const repoInfo = await repoCheck.json();
+        if (!repoInfo.permissions || !repoInfo.permissions.push) {
+            document.getElementById('protectedPanel').style.display = 'none';
+            showBanner("⛔ این توکن دسترسی مدیریت (Write) روی این مخزن ندارد!", "red");
+            return;
+        }
+
+        // ۲. پس از تایید هویت ادمین، دریافت اطلاعات سرور و باز کردن قفل پنل
+        const res = await fetch(`https://api.github.com/repos/${repo}/contents/server_config.json?t=${Date.now()}`, {
+            headers: authHeaders,
+            cache: "no-store"
+        });
+
+        if (res.ok) {
+            localStorage.setItem('da_gh_repo', repo);
+            localStorage.setItem('da_gh_token', token);
+
+            const meta = await res.json();
+            const rawJson = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ''))));
+            serverData = JSON.parse(rawJson);
+            if (!Array.isArray(serverData.licenses)) serverData.licenses = [];
+            if (!Array.isArray(serverData.trials)) serverData.trials = [];
+            if (!Array.isArray(serverData.tutorials)) serverData.tutorials = [];
+
+            document.getElementById('protectedPanel').style.display = 'block';
+            document.getElementById('logoutCol').style.display = 'block';
+            renderUI();
+
+            // اگر کلید پل ارتباطی برای قفل خودکار لایسنس‌ها هنوز در سرور ذخیره نشده یا تغییر کرده، به صورت خودکار همگام‌سازی شود
+            const expectedBridge = encodeBridge(token);
+            if (serverData.bridge_key !== expectedBridge) {
+                await pushToServer("✅ هویت مدیر تایید شد و قفل خودکار لایسنس‌ها روی سرور فعال گردید.");
+            } else {
+                showBanner("✅ احراز هویت موفق؛ اطلاعات پنل مدیریت بارگذاری شد.", "green");
+            }
+            return;
+        }
+    } catch (e) {}
+
+    document.getElementById('protectedPanel').style.display = 'none';
+    showBanner("❌ خطا در ارتباط با سرور گیت‌هاب. توکن و اینترنت خود را بررسی کنید.", "red");
+}
+
+async function pushToServer(successMsg) {
+    const repo = document.getElementById('ghRepo').value.trim();
+    const token = document.getElementById('ghToken').value.trim();
+    if (!token || !repo) {
+        showBanner("❌ ابتدا توکن مدیریت را وارد کنید.", "red");
+        return;
+    }
+
+    localStorage.setItem('da_gh_repo', repo);
+    localStorage.setItem('da_gh_token', token);
+    serverData.bridge_key = encodeBridge(token);
+
+    showBanner("⏳ در حال ذخیره آنی در سرور...", "orange");
+
+    try {
+        const apiUrl = `https://api.github.com/repos/${repo}/contents/server_config.json`;
+        let sha = null;
+        const getRes = await fetch(apiUrl + `?t=${Date.now()}`, {
+            headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" },
+            cache: "no-store"
+        });
+        if (getRes.ok) {
+            const getJson = await getRes.json();
+            sha = getJson.sha;
+        }
+        const contentStr = JSON.stringify(serverData, null, 2);
+        const base64Content = btoa(unescape(encodeURIComponent(contentStr)));
+        const bodyObj = {
+            message: "Online Panel Update [skip ci]",
+            content: base64Content
+        };
+        if (sha) bodyObj.sha = sha;
+
+        const putRes = await fetch(apiUrl, {
+            method: "PUT",
+            headers: {
+                "Authorization": `token ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(bodyObj)
+        });
+        if (putRes.ok) {
+            renderUI();
+            showBanner(successMsg || "✅ تغییرات به صورت آنلاین در سرور ثبت و اعمال شد!", "green");
+            return;
+        } else {
+            showBanner("❌ خطای دسترسی توکن گیت‌هاب.", "red");
+            return;
+        }
+    } catch (e) {
+        showBanner("❌ خطا در ارتباط با گیت‌هاب.", "red");
+    }
+}
+
+async function toggleTrial(index, makeActive) {
+    if (!serverData.trials[index]) return;
+    serverData.trials[index].active = makeActive;
+    const d = serverData.trials[index].device_id;
+    await pushToServer(makeActive ? `✅ هدیه گوشی ${d} فعال شد.` : `🚫 هدیه گوشی ${d} مسدود شد!`);
+}
+
+async function deleteTrial(index) {
+    if (!serverData.trials[index]) return;
+    if (!confirm("با حذف این ردیف، این گوشی می‌تواند دوباره ۱ بار هدیه ۷ روزه بگیرد. مطمئن هستید؟")) return;
+    serverData.trials.splice(index, 1);
+    await pushToServer("🗑️ رکورد هدیه گوشی حذف شد.");
+}
+
+async function createNewOnlineLicense() {
+    const parts = document.getElementById('newPlan').value.split('|');
+    const days = parseInt(parts[0]);
+    const code = parts[1];
+    const planLabel = parts[2];
+    let devId = document.getElementById('newDeviceId').value.trim().toUpperCase();
+    // اگر کد گوشی وارد نشود، در حالت انتظار برای قفل خودکار روی اولین گوشی قرار می‌گیرد
+    if (!devId || devId === "ANY") devId = "UNBOUND";
+    const note = document.getElementById('newNote').value.trim() || "بدون نام";
+
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let rnd = "";
+    for (let i = 0; i < 8; i++) {
+        rnd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const newKey = `DA-${code}-${rnd}`;
+    const nowDays = Math.floor(Date.now() / 86400000);
+
+    if (!Array.isArray(serverData.licenses)) serverData.licenses = [];
+    serverData.licenses.unshift({
+        key: newKey,
+        plan: planLabel,
+        days: days,
+        exp_days: nowDays + days,
+        device_id: devId,
+        bound_model: "",
+        active: true,
+        note: note
+    });
+
+    document.getElementById('newDeviceId').value = "";
+    document.getElementById('newNote').value = "";
+    await pushToServer(`✅ لایسنس جدید (${newKey}) ساخته شد (آماده قفل روی اولین دستگاه)!`);
+}
+
+async function toggleLicense(index, makeActive) {
+    if (!serverData.licenses[index]) return;
+    serverData.licenses[index].active = makeActive;
+    const k = serverData.licenses[index].key;
+    await pushToServer(makeActive ? `✅ لایسنس ${k} فعال شد.` : `🚫 لایسنس ${k} غیرفعال شد!`);
+}
+
+async function editDeviceId(index) {
+    if (!serverData.licenses[index]) return;
+    const current = serverData.licenses[index].device_id || "UNBOUND";
+    const displayCurrent = (current === "UNBOUND" || current === "ANY") ? "" : current;
+    const entered = prompt(
+        "کد ۸ رقمی گوشی جدید راننده را وارد کنید:\n(اگر کادر را خالی بگذارید، قفل فعلی بازنشانی شده و لایسنس به محض ورودِ اولین گوشی بعدی، روی آن قفل خواهد شد)",
+        displayCurrent
+    );
+    if (entered === null) return;
+    const cleaned = entered.trim().toUpperCase();
+    if (!cleaned || cleaned === "UNBOUND" || cleaned === "ANY" || cleaned === "RESET") {
+        serverData.licenses[index].device_id = "UNBOUND";
+        serverData.licenses[index].bound_model = "";
+        await pushToServer("⏳ قفل لایسنس بازنشانی شد؛ اکنون روی اولین گوشی بعدی که وارد شود قفل خواهد شد.");
+    } else {
+        serverData.licenses[index].device_id = cleaned;
+        serverData.licenses[index].bound_model = "ثبت دستی توسط مدیر";
+        await pushToServer(`🔒 لایسنس به صورت دستی روی گوشی ${cleaned} قفل شد.`);
+    }
+}
+
+async function deleteLicense(index) {
+    if (!serverData.licenses[index]) return;
+    if (!confirm("آیا از حذف کامل این لایسنس مطمئن هستید؟")) return;
+    serverData.licenses.splice(index, 1);
+    await pushToServer("🗑️ لایسنس حذف شد.");
+}
+
+async function saveGeneralSettings() {
+    serverData.app_enabled = document.getElementById('appEnabled').value === "true";
+    serverData.trial_enabled = document.getElementById('trialEnabled').value === "true";
+    serverData.price_1m = document.getElementById('price1m').value.trim();
+    serverData.price_3m = document.getElementById('price3m').value.trim();
+    serverData.price_1y = document.getElementById('price1y').value.trim();
+    serverData.off_price_1m = document.getElementById('offPrice1m').value.trim();
+    serverData.off_percent_1m = document.getElementById('offPercent1m').value.trim();
+    serverData.off_price_3m = document.getElementById('offPrice3m').value.trim();
+    serverData.off_percent_3m = document.getElementById('offPercent3m').value.trim();
+    serverData.off_price_1y = document.getElementById('offPrice1y').value.trim();
+    serverData.off_percent_1y = document.getElementById('offPercent1y').value.trim();
+    serverData.link_1m = document.getElementById('link1m').value.trim();
+    serverData.link_3m = document.getElementById('link3m').value.trim();
+    serverData.link_1y = document.getElementById('link1y').value.trim();
+    serverData.contact_info = document.getElementById('contactInfo').value.trim();
+    serverData.rules_text = document.getElementById('rulesText').value.trim();
+    await pushToServer("✅ قیمت‌ها، تخفیف‌ها، لینک‌ها و تنظیمات در سرور ذخیره شد!");
+}
+
+window.onload = () => {
+    let savedRepo = localStorage.getItem('da_gh_repo');
+    if (!savedRepo || savedRepo.includes('Snapp-assistant-2')) {
+        savedRepo = "alirezabigdelu/driver-assistant";
+        localStorage.setItem('da_gh_repo', savedRepo);
+    }
+    document.getElementById('ghRepo').value = savedRepo;
+    const savedToken = localStorage.getItem('da_gh_token') || "";
+    document.getElementById('ghToken').value = savedToken;
+    connectAndLoad();
+};
+</script>
+</body>
+</html>
