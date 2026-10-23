@@ -55,7 +55,7 @@
 <div class="container">
     <div class="header">
         <h1>👑 پنل امن مدیریت سودران</h1>
-        <p>متصل به مخزن خصوصی (Private) با احراز هویت توکن مدیریت</p>
+        <p>متصل به مخزن خصوصی (Private) بدون ذخیره توکن در فایل کانفیگ</p>
     </div>
 
     <div id="globalStatus" class="status-bar"></div>
@@ -68,7 +68,7 @@
                 <input type="text" id="ghRepo" class="ltr" value="alirezabigdelu/driver-assistant">
             </div>
             <div class="col">
-                <label>توکن گیت‌هاب دارای دسترسی repo (ghp_...):</label>
+                <label>توکن امنیتی گیت‌هاب:</label>
                 <input type="password" id="ghToken" class="ltr" placeholder="توکن خود را وارد کنید">
             </div>
         </div>
@@ -256,7 +256,6 @@
 let serverData = {
     app_enabled: true,
     trial_enabled: true,
-    bridge_key: "",
     price_1m: "۱۵۰,۰۰۰ تومان",
     price_3m: "۳۸۰,۰۰۰ تومان",
     price_1y: "۱,۲۰۰,۰۰۰ تومان",
@@ -307,17 +306,6 @@ function autoCalcPercent(tier) {
     } else if (disc === 0) {
         pctInput.value = "";
     }
-}
-
-function encodeBridge(token) {
-    if (!token) return "";
-    const key = "DA2026KEY";
-    let hex = "";
-    for (let i = 0; i < token.length; i++) {
-        const c = token.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-        hex += c.toString(16).padStart(2, '0').toUpperCase();
-    }
-    return hex;
 }
 
 function showBanner(msg, color) {
@@ -495,7 +483,7 @@ async function connectAndLoad() {
     if (!token) {
         document.getElementById('protectedPanel').style.display = 'none';
         document.getElementById('logoutCol').style.display = 'none';
-        showBanner("🔒 پنل قفل است. جهت مشاهده و ویرایش اطلاعات، لطفاً توکن مدیریت (ghp_...) را وارد کنید.", "orange");
+        showBanner("🔒 پنل قفل است. جهت مشاهده و ویرایش اطلاعات، لطفاً توکن مدیریت را وارد کنید.", "orange");
         return;
     }
 
@@ -503,48 +491,32 @@ async function connectAndLoad() {
 
     try {
         const authHeaders = getAuthHeader(token);
-
-        const repoCheck = await fetch(`https://api.github.com/repos/${repo}`, {
-            headers: authHeaders
+        const res = await fetch(`https://api.github.com/repos/${repo}/contents/server_config.json?t=${Date.now()}`, {
+            headers: authHeaders,
+            cache: "no-store"
         });
 
-        if (repoCheck.status === 401) {
+        if (res.status === 401) {
             document.getElementById('protectedPanel').style.display = 'none';
-            showBanner("❌ خطای 401: توکن واردشده منقضی یا نامعتبر است. یک توکن جدید در گیت‌هاب بسازید.", "red");
+            showBanner("❌ خطای 401: توکن واردشده منقضی یا نامعتبر است.", "red");
             return;
         }
-
-        if (repoCheck.status === 404) {
-            document.getElementById('protectedPanel').style.display = 'none';
-            showBanner("❌ خطای 404: مخزن " + repo + " پیدا نشد یا توکن شما تیک کامل «repo» (دسترسی به مخزن Private) را ندارد!", "red");
-            return;
-        }
-
-        if (!repoCheck.ok) {
-            document.getElementById('protectedPanel').style.display = 'none';
-            showBanner("❌ خطا در بررسی مخزن (کد " + repoCheck.status + ").", "red");
-            return;
-        }
-
-        localStorage.setItem('da_gh_repo', repo);
-        localStorage.setItem('da_gh_token', token);
-
-        const res = await fetch(`https://api.github.com/repos/${repo}/contents/server_config.json`, {
-            headers: authHeaders
-        });
 
         if (res.status === 404) {
-            // اگر فایل دیتابیس در مخزن وجود نداشت، به صورت خودکار آن را بساز
-            document.getElementById('protectedPanel').style.display = 'block';
-            document.getElementById('logoutCol').style.display = 'block';
-            await pushToServer("✅ فایل دیتابیس در مخزن ساخته شد و پنل آماده استفاده است!");
+            document.getElementById('protectedPanel').style.display = 'none';
+            showBanner("❌ خطای 404: مخزن یا فایل server_config.json یافت نشد (دسترسی توکن را بررسی کنید).", "red");
             return;
         }
 
         if (res.ok) {
+            localStorage.setItem('da_gh_repo', repo);
+            localStorage.setItem('da_gh_token', token);
+
             const meta = await res.json();
             const rawJson = decodeURIComponent(escape(atob(meta.content.replace(/\s/g, ''))));
             serverData = JSON.parse(rawJson);
+            delete serverData.bridge_key;
+
             if (!Array.isArray(serverData.licenses)) serverData.licenses = [];
             if (!Array.isArray(serverData.trials)) serverData.trials = [];
             if (!Array.isArray(serverData.tutorials)) serverData.tutorials = [];
@@ -552,13 +524,7 @@ async function connectAndLoad() {
             document.getElementById('protectedPanel').style.display = 'block';
             document.getElementById('logoutCol').style.display = 'block';
             renderUI();
-
-            const expectedBridge = encodeBridge(token);
-            if (serverData.bridge_key !== expectedBridge) {
-                await pushToServer("✅ اتصال برقرار شد و کلید ارتباط با مخزن خصوصی همگام‌سازی گردید.");
-            } else {
-                showBanner("✅ اتصال موفق به مخزن خصوصی " + repo + "؛ اطلاعات بارگذاری شد.", "green");
-            }
+            showBanner("✅ اتصال امن برقرار شد؛ اطلاعات بارگذاری گردید.", "green");
             return;
         }
     } catch (e) {
@@ -577,15 +543,16 @@ async function pushToServer(successMsg) {
 
     localStorage.setItem('da_gh_repo', repo);
     localStorage.setItem('da_gh_token', token);
-    serverData.bridge_key = encodeBridge(token);
+    delete serverData.bridge_key;
 
     showBanner("⏳ در حال ذخیره آنی در سرور...", "orange");
 
     try {
         const apiUrl = `https://api.github.com/repos/${repo}/contents/server_config.json`;
         let sha = null;
-        const getRes = await fetch(apiUrl, {
-            headers: getAuthHeader(token)
+        const getRes = await fetch(apiUrl + `?t=${Date.now()}`, {
+            headers: getAuthHeader(token),
+            cache: "no-store"
         });
         if (getRes.ok) {
             const getJson = await getRes.json();
@@ -612,7 +579,7 @@ async function pushToServer(successMsg) {
             renderUI();
             showBanner(successMsg || "✅ تغییرات به صورت آنلاین در سرور ثبت و اعمال شد!", "green");
         } else {
-            showBanner("❌ خطای ذخیره (کد " + putRes.status + "): مطمئن شوید توکن دسترسی Write (تیک کامل repo) دارد.", "red");
+            showBanner("❌ خطای ذخیره (کد " + putRes.status + "): مطمئن شوید توکن دسترسی Write به Contents دارد.", "red");
         }
     } catch (e) {
         showBanner("❌ خطا در ارتباط با گیت‌هاب: " + e.message, "red");
